@@ -10,15 +10,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/activities");
       const activities = await response.json();
 
-      // Clear loading message
+      // Clear loading message and reset activity select
       activitiesList.innerHTML = "";
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
-        const spotsLeft = details.max_participants - details.participants.length;
+        const spotsLeft = details.max_participants - (details.participants ? details.participants.length : 0);
 
         activityCard.innerHTML = `
           <h4>${name}</h4>
@@ -26,6 +27,36 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
         `;
+
+        // Participants section
+        const participantsContainer = document.createElement('div');
+        participantsContainer.className = 'participants';
+
+        const participantsTitle = document.createElement('p');
+        participantsTitle.className = 'participants-title';
+        participantsTitle.innerHTML = '<strong>Participants:</strong>';
+
+        const ul = document.createElement('ul');
+        ul.className = 'participants-list';
+
+        const participants = details.participants || [];
+        if (participants.length === 0) {
+          const li = document.createElement('li');
+          li.className = 'participant-item none';
+          li.textContent = 'No participants yet';
+          ul.appendChild(li);
+        } else {
+          participants.forEach((p) => {
+            const li = document.createElement('li');
+            li.className = 'participant-item';
+            li.textContent = p;
+            ul.appendChild(li);
+          });
+        }
+
+        participantsContainer.appendChild(participantsTitle);
+        participantsContainer.appendChild(ul);
+        activityCard.appendChild(participantsContainer);
 
         activitiesList.appendChild(activityCard);
 
@@ -60,11 +91,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (response.ok) {
         messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        messageDiv.className = "message success";
         signupForm.reset();
+
+        // Refresh activities list to show updated participants and availability
+        await fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        messageDiv.className = "message error";
       }
 
       messageDiv.classList.remove("hidden");
